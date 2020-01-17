@@ -223,6 +223,49 @@ argument:
    end
 ```
 
+#### Using a different selection attribute instead of ID
+
+You can specify a different attribute instead of ID, this option is optional and by default the ID is completed:
+
+```ruby
+   ActiveAdmin.register Product do
+     form do |f|
+        f.input(:category,
+                as: :searchable_select,
+                attribute_select: :value,
+                ajax: {
+                  params: {
+                    some: 'value'
+                  }
+                })
+     end
+   end
+```
+
+```ruby
+   ActiveAdmin.register Category do
+     searchable_select_options(scope: lambda do |params|
+                                 Category.find_all_by_some(params[:some])
+                               end,
+                               attribute_select: :value,
+                               text_attribute: :name)
+   end
+```
+
+#### Adding additional fields to endpoint responses
+
+You can specify any number of model attributes (this parameter is optional):
+
+```ruby
+   ActiveAdmin.register Category do
+     searchable_select_options(scope: lambda do |params|
+                                 Category.find_all_by_some(params[:some])
+                               end,
+                               additional_attributes: [:value, :short_title],
+                               text_attribute: :name)
+   end
+```
+
 #### Inlining Ajax Options in Feature Tests
 
 When writing UI driven feature specs (i.e. with Capybara),

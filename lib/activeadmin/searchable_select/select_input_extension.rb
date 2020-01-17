@@ -43,6 +43,10 @@ module ActiveAdmin
 
       private
 
+      def attribute_select
+        @attribute_select ||= (options[:attribute_select].to_sym rescue :id)
+      end
+
       def ajax_url
         return unless options[:ajax]
         template.polymorphic_path([template.active_admin_namespace.name, ajax_resource_class],
@@ -61,16 +65,15 @@ module ActiveAdmin
       end
 
       def option_for_record(record)
-        [option_collection.display_text(record), record.id]
+        [option_collection.display_text(record), record[attribute_select]]
       end
 
       def selected_records
-        @selected_records ||=
-          if selected_values
-            option_collection_scope.where(id: selected_values)
-          else
-            []
-          end
+        @selected_records ||= if selected_values
+          option_collection_scope.where("#{attribute_select}": selected_values)
+        else
+          []
+        end
       end
 
       def selected_values
