@@ -8,6 +8,9 @@ module ActiveAdmin
         @display_text = extract_display_text_option(options)
         @filter = extract_filter_option(options)
         @per_page = options.fetch(:per_page, 10)
+        @additional_payload = options.fetch(:additional_payload, {})
+        @additional_attributes = options.fetch(:additional_attributes, [])
+        @attribute_select = options.fetch(:attribute_select, :id)
       end
 
       def scope(template, params)
@@ -33,13 +36,7 @@ module ActiveAdmin
 
       def as_json(template, params)
         records, more = fetch_records(template, params)
-
-        results = records.map do |record|
-          {
-            id: record.id,
-            text: display_text(record)
-          }
-        end
+        results = records.map { |record| record_as_json(record).merge(hash_of_additional_payload(record) || {}) }
 
         { results: results, pagination: { more: more } }
       end
@@ -47,6 +44,22 @@ module ActiveAdmin
       private
 
       attr_reader :per_page
+
+      def record_as_json(record)
+        item = {
+          id: record[@attribute_select.to_sym],
+          text: display_text(record)
+        }
+
+        @additional_attributes.each do |attr_name|
+          if record.class.column_names.include? attr_name.to_s
+            key = attr_name.to_sym
+            item[key] = record[key]
+          end
+        end
+
+        item
+      end
 
       def fetch_records(template, params)
         paginate(filter(scope(template, params), params[:term]),
@@ -97,6 +110,21 @@ module ActiveAdmin
 
           ->(term, scope) { scope.ransack("#{text_attribute}_cont" => term).result }
         end
+      end
+
+      def build_additional_payload(record)
+        case @additional_payload
+        when Proc
+          @additional_payload.call(record).to_h
+        else
+          {}
+        end
+      end
+
+      def hash_of_additional_payload(record)
+        return nil if @additional_payload.nil? && @additional_payload.empty?
+
+        build_additional_payload(record)
       end
     end
   end
