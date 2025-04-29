@@ -8,6 +8,7 @@ module ActiveAdmin
         @display_text = extract_display_text_option(options)
         @filter = extract_filter_option(options)
         @per_page = options.fetch(:per_page, 10)
+        @additional_payload = options.fetch(:additional_payload, {})
         @additional_attributes = options.fetch(:additional_attributes, [])
         @attribute_select = options.fetch(:attribute_select, :id)
       end
@@ -35,7 +36,7 @@ module ActiveAdmin
 
       def as_json(template, params)
         records, more = fetch_records(template, params)
-        results = records.map { |record| record_as_json(record) }
+        results = records.map { |record| record_as_json(record).merge(hash_of_additional_payload(record) || {}) }
 
         { results: results, pagination: { more: more } }
       end
@@ -109,6 +110,21 @@ module ActiveAdmin
 
           ->(term, scope) { scope.ransack("#{text_attribute}_cont" => term).result }
         end
+      end
+
+      def build_additional_payload(record)
+        case @additional_payload
+        when Proc
+          @additional_payload.call(record).to_h
+        else
+          {}
+        end
+      end
+
+      def hash_of_additional_payload(record)
+        return nil if @additional_payload.nil? && @additional_payload.empty?
+
+        build_additional_payload(record)
       end
     end
   end
